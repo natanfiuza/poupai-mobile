@@ -1,5 +1,5 @@
-name: poupai_mobile
-description: "A new Flutter project."
+name: Poupai
+description: "Um jeito fácil de controlar suas finanças."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -41,6 +41,7 @@ dependencies:
   intl: ^0.20.2
   flutter_dotenv: ^6.0.0
   flutter_localization: ^0.3.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +53,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+  rename: ^3.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -66,8 +69,10 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/images/
     - .env.development
     - .env.production
+    
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
@@ -76,6 +81,16 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+flutter_launcher_icons:
+  # Configuração para Android
+  android: "launcher_icon"
+
+  # Configuração para iOS (true para habilitar)
+  ios: true
+
+  # Caminho para a sua imagem principal
+  image_path: "assets/icon/icone_1024x1024.png"
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
