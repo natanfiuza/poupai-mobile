@@ -1,0 +1,100 @@
+class _CategoriesBarChart extends StatelessWidget {
+  const _CategoriesBarChart();
+
+  @override
+  Widget build(BuildContext context) {
+    // DADOS FICTÍCIOS - Adaptados para a estrutura do Syncfusion
+    final List<_ChartData> topExpensesData = [
+      _ChartData('Saúde', 150.75),
+      _ChartData('Lazer', 210.0),
+      _ChartData('Transporte', 320.50),
+      _ChartData('Moradia', 450.0),
+      _ChartData('Alimentação', 850.45),
+    ];
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Top 5 Despesas por Categoria',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 220, // Altura ajustada para o gráfico horizontal
+              child: SfCartesianChart(
+                // Propriedade que inverte o gráfico para horizontal
+                isTransposed: true,
+
+                // Remove as bordas do gráfico
+                plotAreaBorderWidth: 0,
+
+                // Eixo X (agora vertical) para as categorias
+                primaryXAxis: const CategoryAxis(
+                  majorGridLines: MajorGridLines(width: 0),
+                  majorTickLines: MajorTickLines(size: 0),
+                  axisLine: AxisLine(width: 0),
+                ),
+
+                // Eixo Y (agora horizontal) para os valores
+                primaryYAxis: NumericAxis(
+                  isVisible:
+                      false, // Esconde o eixo dos valores para um visual mais limpo
+                  majorGridLines: MajorGridLines(width: 0),
+                ),
+
+                series: <CartesianSeries>[
+                  // Define as barras do gráfico
+                  BarSeries<_ChartData, String>(
+                    dataSource: topExpensesData,
+                    xValueMapper: (_ChartData data, _) => data.category,
+                    yValueMapper: (_ChartData data, _) => data.value,
+                    // Customização visual das barras
+                    color: AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                    width: 0.6, // Espessura relativa das barras
+                    // Habilita os rótulos de dados (valores em R$) em cada barra
+                    dataLabelSettings: DataLabelSettings(
+                      isVisible: true,
+                      textStyle: const TextStyle(
+                        color: AppColors.cardBackground,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      // Formata o valor como moeda
+                      builder:
+                          (
+                            dynamic data,
+                            dynamic point,
+                            dynamic series,
+                            int pointIndex,
+                            int seriesIndex,
+                          ) {
+                            final currencyFormat = NumberFormat.currency(
+                              locale: 'pt_BR',
+                              symbol: '',
+                            );
+                            // Envolvemos a string formatada em um widget Text
+                            return Text(
+                              currencyFormat.format((data as _ChartData).value),
+                            );
+                          },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

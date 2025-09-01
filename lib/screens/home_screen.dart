@@ -1,12 +1,13 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Pacote para formatação de moeda
-import 'package:fl_chart/fl_chart.dart'; // Pacote para o gráfico
+// import 'package:fl_chart/fl_chart.dart'; // Pacote para o gráfico
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+// import 'package:smart_hbar_chart/smart_hbar_chart.dart';
 import '../config/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'splash_screen.dart';
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -89,7 +90,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       endDrawer: const _AppDrawer(),
-      body: ListView(
+       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         children: const [
           SizedBox(height: 24),
@@ -103,12 +104,44 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 24),
-          _SummaryCard(), // Widget do Card de Resumo
+          // --- INÍCIO DAS ALTERAÇÕES NO BODY ---
+          Row(
+            children: [
+              _MetricCard(
+                title: 'Receitas',
+                amount: 4500.00,
+                percentageChange: 5.2,
+                icon: Icons.trending_up,
+                color: AppColors.successColor,
+              ),
+              SizedBox(width: 8),
+              _MetricCard(
+                title: 'Despesas',
+                amount: 2950.00,
+                percentageChange: 8.1,
+                icon: Icons.trending_down,
+                color: AppColors.expense,
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              _MetricCard(
+                title: 'Balanço',
+                amount: 1550.00,
+                percentageChange: -2.5,
+                icon: Icons.account_balance_wallet,
+                color: AppColors.secondaryColor,
+              ),
+            ],
+          ),
           SizedBox(height: 16),
-          _CategoriesChart(), // Widget do Gráfico de Categorias
-          SizedBox(
-            height: 80,
-          ), // Espaço extra para não ser coberto pela barra inferior
+          _CategoriesBarChart(),
+          SizedBox(height: 16),
+          _RecentTransactionsList(),
+          SizedBox(height: 80),
+          // --- FIM DAS ALTERAÇÕES NO BODY ---
         ],
       ),
       // Botão flutuante para adicionar despesas
@@ -125,147 +158,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// WIDGET PRIVADO PARA O CARD DE RESUMO
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard();
-
-  @override
-  Widget build(BuildContext context) {
-    // Usando o intl para formatar como moeda local (R$)
-    final currencyFormat = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-    );
-
-    // DADOS FICTÍCIOS (MOCK DATA) - Substituir com dados reais do Provider
-    final double balance = 1200.00;
-    final double expenses =
-        201.00; // Mockup tinha X$.20,100, interpretei como despesa
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: AppColors.cardBackground,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Resumo',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              currencyFormat.format(balance),
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-                color: AppColors.secondaryColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.arrow_downward,
-                  color: AppColors.expense,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${currencyFormat.format(expenses)} em despesas',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.expense,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// WIDGET PRIVADO PARA O GRÁFICO DE CATEGORIAS
-class _CategoriesChart extends StatelessWidget {
-  const _CategoriesChart();
-
-  @override
-  Widget build(BuildContext context) {
-    // DADOS FICTÍCIOS (MOCK DATA)
-    final Map<String, double> categoryData = {
-      'Alimentação': 40.0,
-      'Transporte': 25.0,
-      'Lazer': 15.0,
-      'Moradia': 20.0,
-    };
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: AppColors.cardBackground,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Categorias',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 150,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 4, // Espaço entre as seções
-                  centerSpaceRadius:
-                      40, // Raio do buraco no centro (para virar donut)
-                  sections: _generateChartSections(categoryData),
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-            // TODO: Adicionar uma legenda para as categorias
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Função auxiliar para gerar as seções do gráfico a partir dos dados
-  List<PieChartSectionData> _generateChartSections(Map<String, double> data) {
-    final colors = [
-      const Color(0xFF023E8A), // Azul Escuro
-      const Color(0xFF0096C7), // Azul Claro
-      const Color(0xFFF77F00), // Laranja
-      const Color(0xFFd90429), // Vermelho
-    ];
-    int colorIndex = 0;
-
-    return data.entries.map((entry) {
-      final section = PieChartSectionData(
-        color: colors[colorIndex++ % colors.length],
-        value: entry.value,
-        title: '', // Título vazio para um visual minimalista
-        radius: 50,
-      );
-      return section;
-    }).toList();
-  }
-}
 
 /// Widget privado para o menu lateral (DRAWER)
 class _AppDrawer extends StatelessWidget {
@@ -340,6 +232,270 @@ class _AppDrawer extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ADICIONE ESTES TRÊS NOVOS WIDGETS NO FINAL DO ARQUIVO home_screen.dart
+
+/// WIDGET PARA OS CARDS DE MÉTRICAS (RECEITAS, DESPESAS, BALANÇO)
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final double amount;
+  final double percentageChange;
+  final IconData icon;
+  final Color color;
+
+  const _MetricCard({
+    required this.title,
+    required this.amount,
+    required this.percentageChange,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    );
+    final isPositive = percentageChange >= 0;
+
+    return Flexible(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                currencyFormat.format(amount),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${isPositive ? '+' : ''}${percentageChange.toStringAsFixed(1)}% vs. Mês anterior',
+                style: TextStyle(
+                  color: isPositive
+                      ? AppColors.successColor
+                      : AppColors.expense,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// WIDGET PARA O GRÁFICO DE BARRAS DE CATEGORIAS
+class _CategoriesBarChart extends StatelessWidget {
+  const _CategoriesBarChart();
+
+  @override
+  Widget build(BuildContext context) {
+    // DADOS FICTÍCIOS - Adaptados para a estrutura do Syncfusion
+    final List<_ChartData> topExpensesData = [
+      _ChartData('Saúde', 150.75),
+      _ChartData('Lazer', 210.0),
+      _ChartData('Transporte', 320.50),
+      _ChartData('Moradia', 450.0),
+      _ChartData('Alimentação', 850.45),
+    ];
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Top 5 Despesas por Categoria',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 220, // Altura ajustada para o gráfico horizontal
+              child: SfCartesianChart(
+                // Propriedade que inverte o gráfico para horizontal
+                isTransposed: true,
+
+                // Remove as bordas do gráfico
+                plotAreaBorderWidth: 0,
+
+                // Eixo X (agora vertical) para as categorias
+                primaryXAxis: const CategoryAxis(
+                  majorGridLines: MajorGridLines(width: 0),
+                  majorTickLines: MajorTickLines(size: 0),
+                  axisLine: AxisLine(width: 0),
+                ),
+
+                // Eixo Y (agora horizontal) para os valores
+                primaryYAxis: NumericAxis(
+                  isVisible:
+                      false, // Esconde o eixo dos valores para um visual mais limpo
+                  majorGridLines: MajorGridLines(width: 0),
+                ),
+
+                series: <CartesianSeries>[
+                  // Define as barras do gráfico
+                  BarSeries<_ChartData, String>(
+                    dataSource: topExpensesData,
+                    xValueMapper: (_ChartData data, _) => data.category,
+                    yValueMapper: (_ChartData data, _) => data.value,
+                    // Customização visual das barras
+                    color: AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                    width: 0.6, // Espessura relativa das barras
+                    // Habilita os rótulos de dados (valores em R$) em cada barra
+                    dataLabelSettings: DataLabelSettings(
+                      isVisible: true,
+                      textStyle: const TextStyle(
+                        color: AppColors.cardBackground,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      // Formata o valor como moeda
+                      builder:
+                          (
+                            dynamic data,
+                            dynamic point,
+                            dynamic series,
+                            int pointIndex,
+                            int seriesIndex,
+                          ) {
+                            final currencyFormat = NumberFormat.currency(
+                              locale: 'pt_BR',
+                              symbol: '',
+                            );
+                            // Envolvemos a string formatada em um widget Text
+                            return Text(
+                              currencyFormat.format((data as _ChartData).value),
+                            );
+                          },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Classe auxiliar para estruturar os dados para o gráfico
+class _ChartData {
+  _ChartData(this.category, this.value);
+  final String category;
+  final double value;
+}
+/// WIDGET PARA A LISTA DE TRANSAÇÕES RECENTES
+class _RecentTransactionsList extends StatelessWidget {
+  const _RecentTransactionsList();
+
+  @override
+  Widget build(BuildContext context) {
+    // DADOS FICTÍCIOS
+    final List<Map<String, dynamic>> transactions = [
+      {'desc': 'Supermercado do Mês', 'cat': 'Alimentação', 'amount': -850.45},
+      {'desc': 'Salário', 'cat': 'Salário', 'amount': 4500.00},
+      {'desc': 'Conta de Internet', 'cat': 'Moradia', 'amount': -99.90},
+      // Adicione mais 7 transações se desejar...
+    ];
+    final currencyFormat = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    );
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Últimas Atividades',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...transactions.map((tx) {
+              final isIncome = tx['amount'] >= 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tx['desc'],
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tx['cat'],
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${isIncome ? "+" : "-"} ${currencyFormat.format(tx['amount'].abs())}',
+                      style: TextStyle(
+                        color: isIncome
+                            ? AppColors.successColor
+                            : AppColors.expense,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
