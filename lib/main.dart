@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 import 'config/app_colors.dart';
-// import 'screens/splash_screen.dart'; // Vamos criar essa tela em breve
+import 'screens/splash_screen.dart'; 
+import 'providers/auth_provider.dart';
+
 
 Future<void> main() async {
   // Garante que os bindings do Flutter foram inicializados antes de carregar o .env
@@ -21,7 +24,11 @@ Future<void> main() async {
   // Inicializa a formatação de data para o padrão pt_BR
   await initializeDateFormatting('pt_BR', null);
   
-  runApp(const PoupaiApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => AuthProvider(),
+      child: const PoupaiApp(),
+    ),
+    );
 }
 
 class PoupaiApp extends StatelessWidget {
@@ -104,10 +111,7 @@ class PoupaiApp extends StatelessWidget {
       ),
       // home: const SplashScreen(), // Descomente quando a tela de splash existir
       // Tela provisória enquanto não criamos a splash screen
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Poupaí')),
-        body: const Center(child: Text('Configuração Concluída!')),
-      ),
+       home: const SplashScreen(),
     );
   }
 }
