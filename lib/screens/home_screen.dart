@@ -1,4 +1,3 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Pacote para formatação de moeda
 // import 'package:fl_chart/fl_chart.dart'; // Pacote para o gráfico
@@ -92,9 +91,9 @@ class HomeScreen extends StatelessWidget {
       endDrawer: const _AppDrawer(),
        body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        children: const [
-          SizedBox(height: 24),
-          Text(
+        children: [
+          const SizedBox(height: 14),
+          const Text(
             'Vamos cuidar do seu bolso hoje?',
             style: TextStyle(
               fontSize: 22,
@@ -103,9 +102,11 @@ class HomeScreen extends StatelessWidget {
               color: AppColors.secondaryColor,
             ),
           ),
-          SizedBox(height: 24),
-          // --- INÍCIO DAS ALTERAÇÕES NO BODY ---
-          Row(
+          const SizedBox(height: 4),
+          // Colocamos os 3 cards dentro da mesma Row para que fiquem lado a lado
+          const Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Alinha os cards pelo topo
             children: [
               _MetricCard(
                 title: 'Receitas',
@@ -122,11 +123,7 @@ class HomeScreen extends StatelessWidget {
                 icon: Icons.trending_down,
                 color: AppColors.expense,
               ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
+              SizedBox(width: 8), // Adiciona um espaço entre os cards
               _MetricCard(
                 title: 'Balanço',
                 amount: 1550.00,
@@ -135,13 +132,12 @@ class HomeScreen extends StatelessWidget {
                 color: AppColors.secondaryColor,
               ),
             ],
-          ),
-          SizedBox(height: 16),
-          _CategoriesBarChart(),
-          SizedBox(height: 16),
-          _RecentTransactionsList(),
-          SizedBox(height: 80),
-          // --- FIM DAS ALTERAÇÕES NO BODY ---
+          ),       
+          const SizedBox(height: 16),
+          const _RecentTransactionsList(),
+          const SizedBox(height: 16),
+          const _CategoriesBarChart(),
+          const SizedBox(height: 80),
         ],
       ),
       // Botão flutuante para adicionar despesas
@@ -259,7 +255,8 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(
       locale: 'pt_BR',
-      symbol: 'R\$',
+      //symbol: 'R\$',
+      symbol: '',
     );
     final isPositive = percentageChange >= 0;
 
@@ -268,7 +265,7 @@ class _MetricCard extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16.0,16.0,16.0,16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -276,27 +273,28 @@ class _MetricCard extends StatelessWidget {
                 children: [
                   Icon(icon, color: color, size: 20),
                   const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  // Text(
+                  //   title,
+                  //   style: const TextStyle(
+                  //     fontSize:9,
+                  //     fontWeight: FontWeight.bold,
+                  //     color: AppColors.textSecondary,
+                  //   ),
+                  // ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 7),
               Text(
                 currencyFormat.format(amount),
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Poppins',
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                '${isPositive ? '+' : ''}${percentageChange.toStringAsFixed(1)}% vs. Mês anterior',
+                '${isPositive ? '+' : ''}${percentageChange.toStringAsFixed(1)}% ',
                 style: TextStyle(
                   color: isPositive
                       ? AppColors.successColor
