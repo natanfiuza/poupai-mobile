@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // O ideal é usar um Consumer ou um listener no próprio build.
     // Para simplificar, vamos fazer a verificação após um delay.
-    await Future.delayed(const Duration(seconds: 2)); // Mantém a splash visível
+    await Future.delayed(const Duration(seconds: 3)); // Mantém a splash visível
 
     if (!mounted) return;
 
@@ -69,8 +69,10 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryColor),
+              Image.asset(
+              'assets/animations/loading_cart.gif', 
+              height: 128, // Ajuste a altura conforme necessário
+              width: 128, // Ajuste a largura conforme necessário
             ),
           ],
         ),

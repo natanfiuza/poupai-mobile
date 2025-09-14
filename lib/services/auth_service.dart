@@ -1,17 +1,11 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../models/user_model.dart';
+import 'database_helper.dart';
 
 class AuthService {
   final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl));
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-
-  // Chave para salvar o token no storage
-  static const String _tokenKey = 'auth_token';
-  // Chave para salver os dados do usuario logado
-  static const String _userKey = 'auth_user';
 
   Future<bool> login(String email, String password) async {
     try {
@@ -20,29 +14,23 @@ class AuthService {
         data: {'email': email, 'password': password},
       );
 
-      // Verifica se a requisição foi bem-sucedida (código 200)
       if (response.statusCode == 200 && response.data != null) {
-        // Acessa o objeto 'data' aninhado na resposta
         final responseData = response.data['data'];
-
-        // Verifica se o objeto 'data' e o 'token' dentro dele não são nulos
-        if (responseData != null && responseData['token'] != null) {
-          // Extrai o token de dentro do objeto 'data'
+        if (responseData != null &&
+            responseData['token'] != null &&
+            responseData['user'] != null) {
           final String token = responseData['token'];
-          await _storage.write(key: _tokenKey, value: token);
+          final UserModel user = UserModel.fromJson(responseData['user']);
 
-          if (responseData['user'] != null) {
-            // Converte o mapa do usuário para uma string JSON e salva
-            final String userJson = jsonEncode(responseData['user']);
-            await _storage.write(key: _userKey, value: userJson);
-          }
-          print('Login bem-sucedido. Token salvo.');
+          // Salva o utilizador e o token na base de dados local
+          final dbHelper = DatabaseHelper.instance;
+          await dbHelper.saveUser(user);
+          await dbHelper.saveToken(token);
+
+          print('Login bem-sucedido. Dados guardados na BD local.');
           return true;
         }
       }
-
-      // Se a estrutura da resposta não for a esperada, retorna falso
-      print('Falha no login: Formato de resposta inesperado.');
       return false;
     } on DioException catch (e) {
       print('Erro no login: ${e.response?.data}');
@@ -50,30 +38,7 @@ class AuthService {
     }
   }
 
-  Future<UserModel?> getUser() async {
-    final userJson = await _storage.read(key: _userKey);
-    if (userJson != null) {
-      return UserModel.fromJson(jsonDecode(userJson));
-    }
-    return null;
-  }
-
-  // Atualize o método logout para limpar os dados do usuário também
-  Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _userKey); // <-- ADICIONE ESTA LINHA
-    print('Usuário deslogado.');
-  }
-
-  Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
-  }
-
-  Future<bool> isAuthenticated() async {
-    final token = await getToken();
-    return token != null && token.isNotEmpty;
-  }
-
+  // SUBSTITUA O MÉTODO register
   Future<bool> register(String name, String email, String password) async {
     try {
       final response = await _dio.post(
@@ -81,37 +46,34 @@ class AuthService {
         data: {'name': name, 'email': email, 'password': password},
       );
 
-      // Verifica se a requisição foi bem-sucedida (código 201 ou 200)
       if ((response.statusCode == 201 || response.statusCode == 200) &&
           response.data != null) {
-        // Acessa o objeto 'data' aninhado na resposta
         final responseData = response.data['data'];
-
-        // Verifica se o objeto 'data' e o 'token' dentro dele não são nulos
-        if (responseData != null && responseData['token'] != null) {
-          // Extrai o token de dentro do objeto 'data'
+        if (responseData != null &&
+            responseData['token'] != null &&
+            responseData['user'] != null) {
           final String token = responseData['token'];
-          await _storage.write(key: _tokenKey, value: token);
-          if (responseData['user'] != null) {
-            // Converte o mapa do usuário para uma string JSON e salva
-            final String userJson = jsonEncode(responseData['user']);
-            await _storage.write(key: _userKey, value: userJson);
-          }
-          print('Cadastro bem-sucedido. Usuário logado.');
+          final UserModel user = UserModel.fromJson(responseData['user']);
+
+          // Salva o utilizador e o token na base de dados local
+          final dbHelper = DatabaseHelper.instance;
+          await dbHelper.saveUser(user);
+          await dbHelper.saveToken(token);
+
+          print('Registo bem-sucedido. Dados guardados na BD local.');
           return true;
         }
       }
-
-      // Se a estrutura da resposta não for a esperada, retorna falso
-      print('Falha no cadastro: Formato de resposta inesperado.');
       return false;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 422) {
-        print('Erro de validação: ${e.response?.data}');
-      } else {
-        print('Erro no cadastro: ${e.response?.data}');
-      }
+      print('Erro no registo: ${e.response?.data}');
       return false;
     }
+  }
+
+  Future<void> logout() async {
+    // No futuro, pode adicionar uma chamada à API aqui para invalidar o token no servidor.
+    // A limpeza local será feita no AuthProvider.
+    print('Logout chamado no AuthService.');
   }
 }

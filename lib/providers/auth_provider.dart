@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../services/database_helper.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -19,11 +20,34 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> checkAuthStatus() async {
-    _isAuthenticated = await _authService.isAuthenticated();
-    if (_isAuthenticated) {
-      _currentUser = await _authService.getUser();
+    final dbHelper = DatabaseHelper.instance;
+    final token = await dbHelper.getToken();
+    final user = await dbHelper.getUser();
+
+    if (token != null && user != null) {
+      _isAuthenticated = true;
+      _currentUser = user;
+      print('Sessão carregada a partir da BD local.');
+    } else {
+      _isAuthenticated = false;
+      _currentUser = null;
     }
+
     _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    // Primeiro, limpa os dados locais
+    final dbHelper = DatabaseHelper.instance;
+    await dbHelper.clearAllTables();
+
+    // Depois, pode chamar o serviço para notificar o servidor (opcional)
+    await _authService.logout();
+
+    // Finalmente, atualiza o estado da aplicação
+    _isAuthenticated = false;
+    _currentUser = null;
     notifyListeners();
   }
 
@@ -35,19 +59,13 @@ class AuthProvider extends ChangeNotifier {
 
     _isAuthenticated = success;
     if (success) {
-      _currentUser = await _authService.getUser();
+      // CORREÇÃO: Buscamos o utilizador diretamente da base de dados local
+      _currentUser = await DatabaseHelper.instance.getUser();
     }
     _isLoading = false;
     notifyListeners();
 
     return success;
-  }
-
-  Future<void> logout() async {
-    await _authService.logout();
-    _isAuthenticated = false;
-    _currentUser = null;
-    notifyListeners();
   }
 
   Future<bool> register(String name, String email, String password) async {
@@ -58,7 +76,8 @@ class AuthProvider extends ChangeNotifier {
 
     _isAuthenticated = success;
     if (success) {
-      _currentUser = await _authService.getUser();
+      // CORREÇÃO: Buscamos o utilizador diretamente da base de dados local
+      _currentUser = await DatabaseHelper.instance.getUser();
     }
     _isLoading = false;
     notifyListeners();
