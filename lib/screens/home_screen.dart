@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import '../config/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'splash_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -52,9 +53,14 @@ class HomeScreen extends StatelessWidget {
               // Se o usuário estiver carregado, mostra a foto e o nome
               return Row(
                 children: [
-                  CircleAvatar(
+               CircleAvatar(
                     radius: 18,
-                    backgroundImage: NetworkImage(user.photoUrl),
+                    // Usa o CachedNetworkImageProvider para carregar e guardar a imagem em cache
+                    backgroundImage: CachedNetworkImageProvider(user.photoUrl),
+                    // Mostra um ícone padrão enquanto a imagem carrega ou se houver erro
+                    onBackgroundImageError: (exception, stackTrace) {
+                      print('Erro ao carregar a imagem: $exception');
+                    },
                     backgroundColor: AppColors.backgroundColor,
                   ),
                   const SizedBox(width: 12),
