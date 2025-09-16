@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'config/app_colors.dart';
 import 'screens/splash_screen.dart'; 
 import 'providers/auth_provider.dart';
+import 'providers/transaction_provider.dart';
 
 
 Future<void> main() async {
@@ -24,8 +25,28 @@ Future<void> main() async {
   // Inicializa a formatação de data para o padrão pt_BR
   await initializeDateFormatting('pt_BR', null);
   
-  runApp(ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
+  runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
+          // Cria a instância inicial do TransactionProvider
+          create: (context) => TransactionProvider(),
+          // A função 'update' é chamada sempre que o AuthProvider notifica uma mudança
+          update: (context, authProvider, previousTransactionProvider) {
+            // Passamos o AuthProvider para o TransactionProvider
+            return previousTransactionProvider!..update(authProvider);
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
+          // Cria a instância inicial do TransactionProvider
+          create: (context) => TransactionProvider(),
+          // A função 'update' é chamada sempre que o AuthProvider notifica uma mudança
+          update: (context, authProvider, previousTransactionProvider) {
+            // Passamos o AuthProvider para o TransactionProvider
+            return previousTransactionProvider!..update(authProvider);
+          },
+        ),
+      ],
       child: const PoupaiApp(),
     ),
     );

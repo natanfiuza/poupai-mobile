@@ -40,7 +40,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         uuid TEXT NOT NULL,
         name TEXT NOT NULL,
-        firstName TEXT NOT NULL,
+        first_name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         photoUrl TEXT NOT NULL
       )
@@ -194,4 +194,51 @@ class DatabaseHelper {
     );
     return result.map((json) => TransactionModel.fromMap(json)).toList();
   }
+
+  /// Insere ou atualiza uma transação com base no seu UUID.
+  /// Essencial para a lógica de download do SyncService.
+  Future<void> upsertTransaction(TransactionModel transaction) async {
+    final db = await instance.database;
+    // Tenta encontrar uma transação com o mesmo UUID.
+    final existing = await db.query(
+      'transactions',
+      where: 'uuid = ?',
+      whereArgs: [transaction.uuid],
+      limit: 1,
+    );
+
+    if (existing.isNotEmpty) {
+      // Se existir, atualiza.
+      await db.update(
+        'transactions',
+        transaction.toMap(),
+        where: 'uuid = ?',
+        whereArgs: [transaction.uuid],
+      );
+    } else {
+      // Se não existir, insere.
+      await db.insert('transactions', transaction.toMap());
+    }
+  }
+
+/// Atualiza apenas o status de sincronização de uma transação.
+  Future<int> updateTransactionStatus(int id, String status) async {
+    final db = await instance.database;
+    return db.update(
+      'transactions',
+      {
+        'syncStatus': status,
+        'lastModified': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Apaga permanentemente uma transação do banco de dados local.
+  Future<int> deleteTransactionPermanently(int id) async {
+    final db = await instance.database;
+    return db.delete('transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
 }

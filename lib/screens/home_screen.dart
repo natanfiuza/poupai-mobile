@@ -1,18 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Pacote para formatação de moeda
-// import 'package:fl_chart/fl_chart.dart'; // Pacote para o gráfico
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-// import 'package:smart_hbar_chart/smart_hbar_chart.dart';
 import '../config/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'splash_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-class HomeScreen extends StatelessWidget {
+import 'add_transaction_screen.dart';
+import '../providers/transaction_provider.dart';
+import '../models/transaction_model.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Garante que o build inicial seja concluído ANTES de chamar o fetchTransactions
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      ).fetchTransactions();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final transactionProvider = Provider.of<TransactionProvider>(context);
     // A barra de navegação inferior com o botão "+" centralizado
     final bottomAppBar = BottomAppBar(
       shape: const CircularNotchedRectangle(), // Cria o recorte para o botão
@@ -53,7 +73,7 @@ class HomeScreen extends StatelessWidget {
               // Se o usuário estiver carregado, mostra a foto e o nome
               return Row(
                 children: [
-               CircleAvatar(
+                  CircleAvatar(
                     radius: 18,
                     // Usa o CachedNetworkImageProvider para carregar e guardar a imagem em cache
                     backgroundImage: CachedNetworkImageProvider(user.photoUrl),
@@ -95,61 +115,83 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       endDrawer: const _AppDrawer(),
-       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        children: [
-          const SizedBox(height: 14),
-          const Text(
-            'Vamos cuidar do seu bolso hoje?',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
-              color: AppColors.secondaryColor,
+      body: transactionProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              children: [
+                const SizedBox(height: 14),
+                const Text(
+                  'Vamos cuidar do seu bolso hoje?',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                    color: AppColors.secondaryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _MetricCard(
+                      title: 'Receitas',
+                      amount:
+                          transactionProvider.totalReceipts, // <-- DADO REAL
+                      percentageChange: 0, // TODO: Implementar lógica de %
+                      icon: Icons.trending_up,
+                      color: AppColors.successColor,
+                    ),
+                    const SizedBox(width: 8),
+                    _MetricCard(
+                      title: 'Despesas',
+                      amount:
+                          transactionProvider.totalExpenses, // <-- DADO REAL
+                      percentageChange: 0, // TODO: Implementar lógica de %
+                      icon: Icons.trending_down,
+                      color: AppColors.expense,
+                    ),
+                    const SizedBox(width: 8),
+                    _MetricCard(
+                      title: 'Balanço',
+                      amount: transactionProvider.balance, // <-- DADO REAL
+                      percentageChange: 0, // TODO: Implementar lógica de %
+                      icon: Icons.account_balance_wallet,
+                      color: AppColors.secondaryColor,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Passa os dados reais para os widgets filhos
+                _RecentTransactionsList(
+                  transactions:
+                      transactionProvider.recentTransactions, // <-- DADO REAL
+                ),
+                const SizedBox(height: 16),
+                _CategoriesBarChart(
+                  topExpensesData: transactionProvider
+                      .topSpendingCategories, // <-- DADO REAL
+                ),
+                const SizedBox(height: 80),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          // Colocamos os 3 cards dentro da mesma Row para que fiquem lado a lado
-          const Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // Alinha os cards pelo topo
-            children: [
-              _MetricCard(
-                title: 'Receitas',
-                amount: 4500.00,
-                percentageChange: 5.2,
-                icon: Icons.trending_up,
-                color: AppColors.successColor,
-              ),
-              SizedBox(width: 8),
-              _MetricCard(
-                title: 'Despesas',
-                amount: 2950.00,
-                percentageChange: 8.1,
-                icon: Icons.trending_down,
-                color: AppColors.expense,
-              ),
-              SizedBox(width: 8), // Adiciona um espaço entre os cards
-              _MetricCard(
-                title: 'Balanço',
-                amount: 1550.00,
-                percentageChange: -2.5,
-                icon: Icons.account_balance_wallet,
-                color: AppColors.secondaryColor,
-              ),
-            ],
-          ),       
-          const SizedBox(height: 16),
-          const _RecentTransactionsList(),
-          const SizedBox(height: 16),
-          const _CategoriesBarChart(),
-          const SizedBox(height: 80),
-        ],
-      ),
       // Botão flutuante para adicionar despesas
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Navegar para a tela de Adicionar Despesa/Receita
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(
+                  builder: (context) => const AddTransactionScreen(),
+                ),
+              )
+              .then((_) {
+                // Esta função é executada quando voltamos da tela AddTransactionScreen
+                // e força a atualização da lista de transações.
+                Provider.of<TransactionProvider>(
+                  context,
+                  listen: false,
+                ).fetchTransactions();
+              });
         },
         backgroundColor: AppColors.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
@@ -159,7 +201,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
 
 /// Widget privado para o menu lateral (DRAWER)
 class _AppDrawer extends StatelessWidget {
@@ -271,7 +312,7 @@ class _MetricCard extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0,16.0,16.0,16.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -318,19 +359,11 @@ class _MetricCard extends StatelessWidget {
 
 /// WIDGET PARA O GRÁFICO DE BARRAS DE CATEGORIAS
 class _CategoriesBarChart extends StatelessWidget {
-  const _CategoriesBarChart();
+  final List<Map<String, dynamic>> topExpensesData;
+  const _CategoriesBarChart({required this.topExpensesData});
 
   @override
   Widget build(BuildContext context) {
-    // DADOS FICTÍCIOS - Adaptados para a estrutura do Syncfusion
-    final List<_ChartData> topExpensesData = [
-      _ChartData('Saúde', 150.75),
-      _ChartData('Lazer', 210.0),
-      _ChartData('Transporte', 320.50),
-      _ChartData('Moradia', 450.0),
-      _ChartData('Alimentação', 850.45),
-    ];
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -374,7 +407,12 @@ class _CategoriesBarChart extends StatelessWidget {
                 series: <CartesianSeries>[
                   // Define as barras do gráfico
                   BarSeries<_ChartData, String>(
-                    dataSource: topExpensesData,
+                    dataSource: topExpensesData
+                        .map(
+                          (data) =>
+                              _ChartData(data['category'], data['amount']),
+                        )
+                        .toList(),
                     xValueMapper: (_ChartData data, _) => data.category,
                     yValueMapper: (_ChartData data, _) => data.value,
                     // Customização visual das barras
@@ -424,19 +462,14 @@ class _ChartData {
   final String category;
   final double value;
 }
+
 /// WIDGET PARA A LISTA DE TRANSAÇÕES RECENTES
 class _RecentTransactionsList extends StatelessWidget {
-  const _RecentTransactionsList();
+  final List<TransactionModel> transactions;
+  const _RecentTransactionsList({required this.transactions});
 
   @override
   Widget build(BuildContext context) {
-    // DADOS FICTÍCIOS
-    final List<Map<String, dynamic>> transactions = [
-      {'desc': 'Supermercado do Mês', 'cat': 'Alimentação', 'amount': -850.45},
-      {'desc': 'Salário', 'cat': 'Salário', 'amount': 4500.00},
-      {'desc': 'Conta de Internet', 'cat': 'Moradia', 'amount': -99.90},
-      // Adicione mais 7 transações se desejar...
-    ];
     final currencyFormat = NumberFormat.currency(
       locale: 'pt_BR',
       symbol: 'R\$',
@@ -460,7 +493,7 @@ class _RecentTransactionsList extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...transactions.map((tx) {
-              final isIncome = tx['amount'] >= 0;
+              final isIncome = tx.type == 'receipt';
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
@@ -470,12 +503,12 @@ class _RecentTransactionsList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tx['desc'],
+                            tx.description,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            tx['cat'],
+                            tx.category,
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -485,7 +518,7 @@ class _RecentTransactionsList extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${isIncome ? "+" : "-"} ${currencyFormat.format(tx['amount'].abs())}',
+                      '${isIncome ? "+" : "-"} ${currencyFormat.format(tx.amount.abs())}',
                       style: TextStyle(
                         color: isIncome
                             ? AppColors.successColor

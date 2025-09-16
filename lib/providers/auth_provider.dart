@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../services/database_helper.dart';
-
+import '../services/sync_service.dart';
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
@@ -28,6 +28,7 @@ class AuthProvider extends ChangeNotifier {
       _isAuthenticated = true;
       _currentUser = user;
       print('Sessão carregada a partir da BD local.');
+     
     } else {
       _isAuthenticated = false;
       _currentUser = null;
@@ -59,8 +60,9 @@ class AuthProvider extends ChangeNotifier {
 
     _isAuthenticated = success;
     if (success) {
-      // CORREÇÃO: Buscamos o utilizador diretamente da base de dados local
+      // Busca o utilizador diretamente da base de dados local
       _currentUser = await DatabaseHelper.instance.getUser();
+      SyncService().sync();
     }
     _isLoading = false;
     notifyListeners();
@@ -76,8 +78,9 @@ class AuthProvider extends ChangeNotifier {
 
     _isAuthenticated = success;
     if (success) {
-      // CORREÇÃO: Buscamos o utilizador diretamente da base de dados local
+      // Busca o utilizador diretamente da base de dados local
       _currentUser = await DatabaseHelper.instance.getUser();
+      SyncService().sync();
     }
     _isLoading = false;
     notifyListeners();
