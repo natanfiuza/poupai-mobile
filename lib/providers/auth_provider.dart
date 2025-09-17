@@ -62,7 +62,7 @@ class AuthProvider extends ChangeNotifier {
     if (success) {
       // Busca o utilizador diretamente da base de dados local
       _currentUser = await DatabaseHelper.instance.getUser();
-      SyncService().sync();
+      
     }
     _isLoading = false;
     notifyListeners();
@@ -80,7 +80,7 @@ class AuthProvider extends ChangeNotifier {
     if (success) {
       // Busca o utilizador diretamente da base de dados local
       _currentUser = await DatabaseHelper.instance.getUser();
-      SyncService().sync();
+      
     }
     _isLoading = false;
     notifyListeners();

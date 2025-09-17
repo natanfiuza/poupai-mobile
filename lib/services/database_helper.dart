@@ -4,10 +4,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/user_model.dart';
 import '../models/transaction_model.dart';
+import '../models/category_model.dart';
 
 class DatabaseHelper {
   static const _databaseName = "poupai.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   // Torna esta classe um singleton
   DatabaseHelper._privateConstructor();
@@ -30,6 +31,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -67,6 +69,15 @@ class DatabaseHelper {
         lastModified INTEGER NOT NULL
       )
       ''');
+    await db.execute('''
+      CREATE TABLE categories (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        color TEXT NOT NULL
+      )
+    ''');
   }
 
   /// Guarda ou atualiza o utilizador na base de dados.
@@ -117,6 +128,8 @@ class DatabaseHelper {
     Database db = await instance.database;
     await db.delete('user');
     await db.delete('session');
+    await db.delete('transactions');
+    await db.delete('categories'); 
     print('Base de dados local limpa.');
   }
 
@@ -240,5 +253,42 @@ class DatabaseHelper {
     final db = await instance.database;
     return db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
+  
+  /// Atualiza a estrutura do banco de dados para a nova versão. 
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+      CREATE TABLE categories (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        color TEXT NOT NULL
+      )
+    ''');
+    }
+  }
+  /// Guarda uma lista de categorias, substituindo as antigas.
+  Future<void> saveCategories(List<CategoryModel> categories) async {
+    final db = await instance.database;
+    await db.transaction((txn) async {
+      await txn.delete('categories'); // Limpa as categorias antigas
+      for (final category in categories) {
+        await txn.insert('categories', category.toMap());
+      }
+    });
+    print('${categories.length} categorias salvas localmente.');
+  }
 
+  /// Busca as categorias da base de dados, filtrando por tipo.
+  Future<List<CategoryModel>> getCategories(String type) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'categories',
+      where: 'type = ?',
+      whereArgs: [type],
+      orderBy: 'name ASC',
+    );
+    return result.map((json) => CategoryModel.fromMap(json)).toList();
+  }
 }

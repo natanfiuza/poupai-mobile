@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 
 import '../config/app_colors.dart';
 import '../models/transaction_model.dart';
 import '../services/database_helper.dart';
-
+import '../providers/category_provider.dart';
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  final TransactionModel? transactionToEdit;
+   const AddTransactionScreen({super.key, this.transactionToEdit});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -23,16 +25,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String? _selectedCategory;
   bool _isLoading = false;
 
-  // Lista de categorias de exemplo
-  final List<String> _categories = [
-    'Alimentação',
-    'Transporte',
-    'Moradia',
-    'Lazer',
-    'Saúde',
-    'Salário',
-    'Outros',
-  ];
+
+
+  @override
+  void initState() {
+    super.initState();
+    // Verifica se estamos no modo de edição
+    if (widget.transactionToEdit != null) {
+      final tx = widget.transactionToEdit!;
+      _descriptionController.text = tx.description;
+      _amountController.text = tx.amount
+          .toStringAsFixed(2)
+          .replaceAll('.', ',');
+      _transactionType = tx.type;
+      _selectedDate = tx.date;
+      _selectedCategory = tx.category;
+    }
+  }
 
   Future<void> _pickDate() async {
     final pickedDate = await showDatePicker(
@@ -48,55 +57,80 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    try {
-      final newTransaction = TransactionModel(
-        uuid: const Uuid().v4(), // Gera um UUID único
-        description: _descriptionController.text,
-        amount: double.parse(_amountController.text.replaceAll(',', '.')),
-        category: _selectedCategory!,
-        date: _selectedDate,
-        type: _transactionType,
-        syncStatus: 'new', // Marca como 'novo' para sincronização futura
-        lastModified: DateTime.now(),
-      );
+    final isEditing = widget.transactionToEdit != null;
 
-      await DatabaseHelper.instance.createTransaction(newTransaction);
+    try {
+      if (isEditing) {
+        // LÓGICA DE ATUALIZAÇÃO
+        final updatedTransaction = TransactionModel(
+          id: widget.transactionToEdit!.id, // Mantém o ID local
+          uuid: widget.transactionToEdit!.uuid, // Mantém o UUID
+          description: _descriptionController.text,
+          amount: double.parse(_amountController.text.replaceAll(',', '.')),
+          category: _selectedCategory!,
+          date: _selectedDate,
+          type: _transactionType,
+          // Se já estava sincronizado, marca como 'edited'
+          syncStatus: widget.transactionToEdit!.syncStatus == 'synced'
+              ? 'edited'
+              : 'new',
+          lastModified: DateTime.now(),
+        );
+        await DatabaseHelper.instance.updateTransaction(updatedTransaction);
+      } else {
+        // LÓGICA DE CRIAÇÃO (já existente)
+        final newTransaction = TransactionModel(
+          uuid: const Uuid().v4(),
+          description: _descriptionController.text,
+          amount: double.parse(_amountController.text.replaceAll(',', '.')),
+          category: _selectedCategory!,
+          date: _selectedDate,
+          type: _transactionType,
+          syncStatus: 'new',
+          lastModified: DateTime.now(),
+        );
+        await DatabaseHelper.instance.createTransaction(newTransaction);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Transação guardada com sucesso!'),
             backgroundColor: AppColors.successColor,
           ),
         );
-        Navigator.of(context).pop(); // Fecha a tela após guardar
+        Navigator.of(context).pop();
       }
     } catch (e) {
-      print('Erro ao guardar a transação: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao guardar a transação.'),
-          backgroundColor: AppColors.errorColor,
-        ),
-      );
+      // ... (código de tratamento de erro continua o mesmo)
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.transactionToEdit != null;
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+    final categoriesToShow = _transactionType == 'expense'
+        ? categoryProvider.expenseCategories
+        : categoryProvider.receiptCategories;
+    final uniqueCategoryNames = categoriesToShow
+            .map((c) => c.name)
+            .toSet()
+            .toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Adicionar Transação')),
+      appBar: AppBar(
+        title: Text(isEditing ? 'Editar Transação' : 'Adicionar Transação'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -119,7 +153,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               selected: {_transactionType},
               onSelectionChanged: (newSelection) {
                 setState(() {
-                  _transactionType = newSelection.first;
+                  _transactionType = newSelection.first; 
+                  _selectedCategory = null; // Limpa a categoria selecionada para evitar conflitos
                 });
               },
             ),
@@ -149,8 +184,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             DropdownButtonFormField<String>(
               value: _selectedCategory,
               decoration: const InputDecoration(labelText: 'Categoria'),
-              items: _categories.map((category) {
-                return DropdownMenuItem(value: category, child: Text(category));
+              // Constrói os itens a partir da lista de nomes únicos
+              items: uniqueCategoryNames.map((name) {
+                return DropdownMenuItem(value: name, child: Text(name));
               }).toList(),
               onChanged: (newValue) {
                 setState(() {

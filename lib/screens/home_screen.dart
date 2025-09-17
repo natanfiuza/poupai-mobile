@@ -9,6 +9,7 @@ import 'splash_screen.dart';
 import 'add_transaction_screen.dart';
 import '../providers/transaction_provider.dart';
 import '../models/transaction_model.dart';
+import 'transaction_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,7 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.list_alt, color: AppColors.textSecondary),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const TransactionHistoryScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 48), // Espaço para o botão central
           IconButton(
