@@ -7,7 +7,7 @@ import 'config/app_colors.dart';
 import 'screens/splash_screen.dart'; 
 import 'providers/auth_provider.dart';
 import 'providers/transaction_provider.dart';
-
+import 'providers/category_provider.dart';
 
 Future<void> main() async {
   // Garante que os bindings do Flutter foram inicializados antes de carregar o .env
@@ -37,14 +37,11 @@ Future<void> main() async {
             return previousTransactionProvider!..update(authProvider);
           },
         ),
-        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
-          // Cria a instância inicial do TransactionProvider
-          create: (context) => TransactionProvider(),
-          // A função 'update' é chamada sempre que o AuthProvider notifica uma mudança
-          update: (context, authProvider, previousTransactionProvider) {
-            // Passamos o AuthProvider para o TransactionProvider
-            return previousTransactionProvider!..update(authProvider);
-          },
+        // Proxy para o novo CategoryProvider
+        ChangeNotifierProxyProvider<AuthProvider, CategoryProvider>(
+          create: (context) => CategoryProvider(),
+          update: (context, authProvider, previous) =>
+              previous!..update(authProvider),
         ),
       ],
       child: const PoupaiApp(),
